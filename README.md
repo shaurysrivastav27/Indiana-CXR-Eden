@@ -201,12 +201,12 @@ Evaluating medical text using standard NLP metrics (like BLEU or ROUGE) is funda
 
 **Ablation Study Results**
 
-| **Setting** | **Image Augment** | **Dataset Size** | **CLAHE** | **BLEU-4** | **RadGraph F1** | **CheXbert-5 Micro F1** | **CRIMSON Score** |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| **Decoder Only** | No | 3k | No | 13.33 | 0.3395 | 0.0000 | 0.2264 |
-| **Encoder-Decoder** | No | 3k | No | 18.29 | 0.3019 | 0.4444 | 0.2364 |
-| **Encoder-Decoder** | Yes | 7k+ | No | 12.85 | 0.3340 | 0.0900 | 0.4131 |
-| **Encoder-Decoder** | **Yes** | **7k+** | **Yes** | **26.44** | **0.3897** | **0.5862** | **0.4616** |
+| **Setting** | **Image Augment** | **Dataset Size** | **CLAHE** | **BLEU-4** | **RadGraph F1** | **CheXbert-5 Micro F1** | **CRIMSON Score** |GREEN Score|
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Decoder Only** | No | 3k | No | 13.33 | 0.3395 | 0.0000 | 0.2264 |0.4719618625|
+| **Encoder-Decoder** | No | 3k | No | 18.29 | 0.3019 | 0.4444 | 0.2364 |0.3778743423|
+| **Encoder-Decoder** | Yes | 7k+ | No | 12.85 | 0.3340 | 0.0900 | 0.4131 |**0.4603635562**|
+| **Encoder-Decoder** | **Yes** | **7k+** | **Yes** | **26.44** | **0.3897** | **0.5862** | **0.4616** |0.4320836431|
 
 **Analysis of Results:**
 
