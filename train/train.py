@@ -17,6 +17,7 @@ from peft import get_peft_model
 
 
 def main(
+    train_name,
     model_mode,
     output_dir_root,
     train_csv_path="train_resized.csv",
@@ -25,7 +26,7 @@ def main(
 ):
 
     output_dir = os.path.join(
-        output_dir_root, f"qwen-vl-report-lora-{model_mode}-{image_mode}"
+        output_dir_root, f"qwen-vl-report-lora-{model_mode}-{image_mode}-{train_name}"
     )
 
     lora_config = lora_config_loader(model_mode)
@@ -42,7 +43,7 @@ def main(
 
     print("Loading Testing/Validation Dataset...")
     val_dataset = XRayReportDataset(
-        csv_file=test_csv_path, image_mode=image_mode, apply_clahe_fn=True
+        csv_file=test_csv_path, image_mode=image_mode, is_train=False, apply_clahe_fn=True
     )
 
     print(f"Train size: {len(train_dataset)} | Eval size: {len(val_dataset)}")
@@ -54,18 +55,18 @@ def main(
     # ==========================================
     training_args = TrainingArguments(
         output_dir=output_dir,
-        per_device_train_batch_size=8,  # Adjust based on VRAM (2B model with 4-bit handles well on 24GB)
-        gradient_accumulation_steps=1,
-        optim="adamw_torch_fused",  # Fused optimizer for speed
+        per_device_train_batch_size=4,
+        gradient_accumulation_steps=2,
+        optim="adamw_torch_fused",
         learning_rate=2e-4,
         fp16=False,
         bf16=True,  # Highly recommended for modern GPUs (Ampere/Hopper)
-        max_grad_norm=0.3,
+        max_grad_norm=1.0,
         num_train_epochs=3,
         eval_strategy="steps",
-        eval_steps=100,
+        eval_steps=500,
         save_strategy="steps",
-        save_steps=100,
+        save_steps=500,
         logging_steps=10,
         lr_scheduler_type="cosine",
         warmup_ratio=0.03,

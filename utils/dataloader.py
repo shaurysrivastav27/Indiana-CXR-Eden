@@ -113,12 +113,17 @@ class XRayReportDataset(Dataset):
         if isinstance(frontal_img_path, str) and os.path.exists(frontal_img_path):
             try:
                 front_img = Image.open(frontal_img_path).convert("RGB")
-                if self.apply_clahe_fn:
-                    front_img = apply_clahe(front_img)
                 if self.augment:
                     front_img = self.augment(front_img)
                 images.append(front_img)
                 content_list.append({"type": "image", "image": front_img})
+
+                if self.apply_clahe_fn:
+                    # apply clahe for bones related disorders
+                    front_img = apply_clahe(front_img)
+                    images.append(front_img)
+                    content_list.append({"type": "image", "image": front_img})
+
             except Exception as e:
                 print(f"Error loading frontal image {row['Frontal']}: {e}")
 
@@ -130,8 +135,6 @@ class XRayReportDataset(Dataset):
         ):
             try:
                 lat_img = Image.open(lateral_img_path).convert("RGB")
-                if self.apply_clahe_fn:
-                    lat_img = apply_clahe(lat_img)
                 if self.augment:
                     lat_img = self.augment(lat_img)
                 images.append(lat_img)

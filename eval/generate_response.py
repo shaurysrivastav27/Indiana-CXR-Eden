@@ -77,7 +77,7 @@ def generate_reports(
             generated_ids = model.generate(
                 **inputs,
                 max_new_tokens=MAX_NEW_TOKENS,
-                do_sample=True,
+                do_sample=False,
                 temperature=0.0,
                 top_p=0.95,
                 repetition_penalty=1.1,
