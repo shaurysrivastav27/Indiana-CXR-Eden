@@ -165,7 +165,7 @@ disease_bucket_mapping = {
 - **The Necessity of Multi-View Inputs:** While many automated systems rely solely on Frontal (PA/AP) views, this pipeline explicitly incorporated **Lateral views**. This is clinically imperative; the lateral view is often the only way to confirm retrocardiac opacities and is highly sensitive for identifying *Pleural Space Diseases* (such as small pleural effusions evidenced by the blunting of the posterior costophrenic sulcus).
 - 
 
-![]()
+![](https://github.com/shaurysrivastav27/Indiana-CXR-Eden/blob/main/utils/pleural_effusion.png)
 
 - **Generalizability & The 200+ Holdout Rationale:** A test set of ~250 cases was strictly partitioned prior to any training manipulations. **This holdout set was specifically chosen via iterative multi-label stratification to maintain the authentic clinical prior distribution** (heavily skewed toward normal findings). Evaluating on an artificially balanced test set yields inflated metrics that do not generalize to a real-world clinical queue. Iterative stratification ensures rare edge-cases exist in the test set without distorting their real-world frequency.
 
