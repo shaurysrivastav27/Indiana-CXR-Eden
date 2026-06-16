@@ -30,7 +30,7 @@ def main(
     )
 
     lora_config = lora_config_loader(model_mode)
-    model, processor = load_base_model()
+    model, processor = load_base_model(train=True)
 
     model = get_peft_model(model, lora_config)
     model.enable_input_require_grads()

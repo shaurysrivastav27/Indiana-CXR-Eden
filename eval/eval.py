@@ -173,7 +173,7 @@ def main():
     df["bertscore_f1"] = bert_scores
     df["radgraph_f1"] = rg_scores
     df["green_score"] = green_scores
-    df['crimson_score'] = crimson_mean
+    df['crimson_score'] = crimson_scores
 
     output_name = "evaluation_results_with_metrics.csv"
     df.to_csv(output_name, index=False)

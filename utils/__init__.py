@@ -1,5 +1,6 @@
 from .dataloader import (
     XRayReportDataset,
+    XRayReportEvalDataset,
     QwenVLLMDataCollator,
     generate_input_prompt_template,
     generate_output_prompt_template,

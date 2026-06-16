@@ -59,13 +59,13 @@ def main(INPUT_CSV="test.csv", OUTPUT_CSV="test_resized.csv"):
         for idx, row in df.iterrows():
             # Queue Frontal Image
             if pd.notna(row["Frontal"]):
-                save_name = f"row_{idx}_frontal.jpg"
+                save_name = row["Frontal"].split("/")[-1]
                 future = executor.submit(process_image, row["Frontal"], save_name)
                 tasks.append((future, idx, "Frontal"))
 
             # Queue Lateral Image
             if pd.notna(row["Lateral"]):
-                save_name = f"row_{idx}_lateral.jpg"
+                save_name = row["Lateral"].split("/")[-1]
                 future = executor.submit(process_image, row["Lateral"], save_name)
                 tasks.append((future, idx, "Lateral"))
 

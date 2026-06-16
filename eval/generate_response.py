@@ -9,7 +9,7 @@ from utils import (
     preprocess_dataset,
     load_base_model,
     load_model_with_lora,
-    XRayReportDataset,
+    XRayReportEvalDataset,
 )
 
 
@@ -35,11 +35,12 @@ def generate_reports(
     # 4. Prepare Dataset
     # ==========================================
     print(f"Loading test dataset: {TEST_CSV}")
-    df = XRayReportDataset(csv_file=TEST_CSV, is_train=False, image_mode=IMAGE_MODE)
+    df = XRayReportEvalDataset(csv_file=TEST_CSV, image_mode=IMAGE_MODE)
 
     generated_reports = []
 
     model, processor = load_model_with_lora(LORA_ADAPTER_PATH)
+    processor.tokenizer.padding_side = "left"
 
     total_len = len(df)
 

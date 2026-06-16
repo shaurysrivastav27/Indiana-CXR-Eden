@@ -3,7 +3,6 @@ import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
 import torchvision.transforms.v2 as T
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 import cv2
 import numpy as np
 
@@ -113,16 +112,18 @@ class XRayReportDataset(Dataset):
         if isinstance(frontal_img_path, str) and os.path.exists(frontal_img_path):
             try:
                 front_img = Image.open(frontal_img_path).convert("RGB")
+                if self.apply_clahe_fn:
+                    # apply clahe for bones related disorders
+                    clahe_front_img = apply_clahe(front_img)
+                    images.append(clahe_front_img)
+                    content_list.append({"type": "image", "image": clahe_front_img})
                 if self.augment:
                     front_img = self.augment(front_img)
+                
+                
                 images.append(front_img)
                 content_list.append({"type": "image", "image": front_img})
 
-                if self.apply_clahe_fn:
-                    # apply clahe for bones related disorders
-                    front_img = apply_clahe(front_img)
-                    images.append(front_img)
-                    content_list.append({"type": "image", "image": front_img})
 
             except Exception as e:
                 print(f"Error loading frontal image {row['Frontal']}: {e}")
@@ -153,6 +154,85 @@ class XRayReportDataset(Dataset):
 
         return {"messages": messages, "images": images}
 
+
+class XRayReportEvalDataset(Dataset):
+    def __init__(
+        self,
+        csv_file,
+        image_mode="frontal_and_lateral",
+        apply_clahe_fn=False,
+    ):
+        """
+        Args:
+            csv_file (str): Path to the dataset CSV.
+            image_mode (str): "frontal_only" or "frontal_and_lateral"
+        """
+        self.df = preprocess_dataset(csv_file)
+        self.image_mode = image_mode
+        self.apply_clahe_fn = apply_clahe_fn
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        row = self.df.iloc[idx]
+
+        # 1. Prepare Text Inputs and Targets
+        indication = str(row["indication"]).strip()
+        findings = str(row["findings"]).strip()
+        impression = str(row["impression"]).strip()
+
+        prompt_text = generate_input_prompt_template(indication)
+        target_text = generate_output_prompt_template(findings, impression)
+
+        # 2. Gather Images
+        images = []
+        content_list = []
+
+        frontal_img_path = row["Frontal"]
+        lateral_img_path = row["Lateral"]
+
+        # Load Frontal Image
+        if isinstance(frontal_img_path, str) and os.path.exists(frontal_img_path):
+            try:
+                front_img = Image.open(frontal_img_path).convert("RGB")
+
+                if self.apply_clahe_fn:
+                    # apply clahe for bones related disorders
+                    clahe_front_img = apply_clahe(front_img)
+                    images.append(clahe_front_img)
+                    content_list.append({"type": "image", "image": clahe_front_img})
+
+                images.append(front_img)
+                content_list.append({"type": "image", "image": front_img})
+
+                
+
+            except Exception as e:
+                print(f"Error loading frontal image {row['Frontal']}: {e}")
+
+        # Load Lateral Image (if required and available)
+        if (
+            self.image_mode == "frontal_and_lateral"
+            and isinstance(lateral_img_path, str)
+            and os.path.exists(lateral_img_path)
+        ):
+            try:
+                lat_img = Image.open(lateral_img_path).convert("RGB")
+                images.append(lat_img)
+                content_list.append({"type": "image", "image": lat_img})
+            except Exception as e:
+                print(f"Error loading lateral image {row['Lateral']}: {e}")
+
+        # 3. Append the text instruction to the content list
+        content_list.append({"type": "text", "text": prompt_text})
+
+        # 4. Construct the Qwen-VL Chat Message Format
+        messages = [
+            {"role": "user", "content": content_list}
+        ]
+
+        return {"messages": messages, "images": images}
 
 class QwenVLLMDataCollator:
     def __init__(self, processor):
@@ -192,23 +272,26 @@ class QwenVLLMDataCollator:
             padding=True,
         )
 
-        # Process the prompts only to find the lengths for masking
-        prompt_batch = self.processor(
-            text=prompt_texts,
-            images=image_inputs if len(image_inputs) > 0 else None,
-            return_tensors="pt",
-            padding=True,
-        )
-
         labels = batch["input_ids"].clone()
 
         # Masking out the user prompt and padding tokens
         for i in range(len(labels)):
-            # 1. Mask the prompt tokens
-            prompt_len = prompt_batch["attention_mask"][i].sum().item()
-            labels[i, :prompt_len] = -100
+            # 1. Find where real (non-padding) tokens start in the full sequence.
+            #    With left-padding, padding tokens sit at the front, so the first
+            #    position where attention_mask == 1 is where the prompt begins.
+            real_start = (batch["attention_mask"][i] == 1).nonzero(as_tuple=True)[0][0].item()
 
-            # 2. Mask the pad tokens
+            # 2. Get the unpadded prompt length by tokenizing the prompt alone,
+            #    without any batch padding, so we get the true token count.
+            prompt_encoding = self.processor.tokenizer(
+                prompt_texts[i], return_tensors="pt", padding=False
+            )
+            prompt_len = prompt_encoding["input_ids"].shape[1]
+
+            # 3. Mask exactly the prompt tokens in the full sequence.
+            labels[i, real_start : real_start + prompt_len] = -100
+
+            # 4. Mask padding tokens.
             pad_mask = batch["attention_mask"][i] == 0
             labels[i, pad_mask] = -100
 

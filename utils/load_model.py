@@ -3,33 +3,39 @@ from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
 from peft import PeftModel, LoraConfig, get_peft_model
 
 
-def load_base_model(BASE_MODEL_ID="Qwen/Qwen3-VL-2B-Instruct"):
+def load_base_model(BASE_MODEL_ID="Qwen/Qwen3-VL-2B-Instruct", train=False):
     print(f"Loading base model: {BASE_MODEL_ID}...")
-    try:
+    if train:
         base_model = Qwen3VLForConditionalGeneration.from_pretrained(
             BASE_MODEL_ID,
-            device_map="auto",
             torch_dtype=torch.bfloat16,
             attn_implementation="flash_attention_2",
         )
-    except Exception as E:
-        print("Flash attention backend not available!")
-        base_model = Qwen3VLForConditionalGeneration.from_pretrained(
-            BASE_MODEL_ID,
-            device_map="auto",
-            torch_dtype=torch.float16,
-        )
+    else:
+        try:
+            base_model = Qwen3VLForConditionalGeneration.from_pretrained(
+                BASE_MODEL_ID,
+                device_map="auto",
+                torch_dtype=torch.bfloat16,
+                attn_implementation="flash_attention_2",
+            )
+        except Exception as E:
+            print("Flash attention backend not available!")
+            base_model = Qwen3VLForConditionalGeneration.from_pretrained(
+                BASE_MODEL_ID,
+                device_map="auto",
+                torch_dtype=torch.float16,
+            )
     processor = AutoProcessor.from_pretrained(BASE_MODEL_ID)
 
-    # Generation requires padding on the left so the last token is the actual prompt text
-    processor.tokenizer.padding_side = "left"
+    # Training uses right-padding; inference callers override to left-padding as needed
+    processor.tokenizer.padding_side = "right"
 
     return base_model, processor
 
 
-def load_model_with_lora(LORA_ADAPTER_PATH, base_model=None):
-    if base_model is None:
-        base_model, processor = load_base_model()
+def load_model_with_lora(LORA_ADAPTER_PATH):
+    base_model, processor = load_base_model()
     print(f"Loading LoRA weights from: {LORA_ADAPTER_PATH}...")
     model = PeftModel.from_pretrained(base_model, LORA_ADAPTER_PATH)
     model = model.merge_and_unload()
