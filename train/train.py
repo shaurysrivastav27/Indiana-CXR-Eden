@@ -14,6 +14,7 @@ from utils import (
     lora_config_loader,
 )
 from peft import get_peft_model
+import argparse
 
 
 def main(
@@ -23,6 +24,7 @@ def main(
     train_csv_path="train_resized.csv",
     test_csv_path="test_resized.csv",
     image_mode="frontal_and_lateral",
+    apply_clahe_fn=False
 ):
 
     output_dir = os.path.join(
@@ -38,12 +40,12 @@ def main(
 
     print("Loading Training Dataset...")
     train_dataset = XRayReportDataset(
-        csv_file=train_csv_path, image_mode=image_mode, apply_clahe_fn=True
+        csv_file=train_csv_path, image_mode=image_mode, apply_clahe_fn=apply_clahe_fn
     )
 
     print("Loading Testing/Validation Dataset...")
     val_dataset = XRayReportDataset(
-        csv_file=test_csv_path, image_mode=image_mode, is_train=False, apply_clahe_fn=True
+        csv_file=test_csv_path, image_mode=image_mode, is_train=False, apply_clahe_fn=apply_clahe_fn
     )
 
     print(f"Train size: {len(train_dataset)} | Eval size: {len(val_dataset)}")
@@ -56,7 +58,8 @@ def main(
     training_args = TrainingArguments(
         output_dir=output_dir,
         per_device_train_batch_size=4,
-        gradient_accumulation_steps=2,
+        per_device_eval_batch_size=1,
+        gradient_accumulation_steps=1,
         optim="adamw_torch_fused",
         learning_rate=2e-4,
         fp16=False,
@@ -64,9 +67,9 @@ def main(
         max_grad_norm=1.0,
         num_train_epochs=3,
         eval_strategy="steps",
-        eval_steps=500,
+        eval_steps=50,
         save_strategy="steps",
-        save_steps=500,
+        save_steps=50,
         logging_steps=10,
         lr_scheduler_type="cosine",
         warmup_ratio=0.03,
@@ -98,4 +101,24 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Train Qwen-VL with LoRA for X-Ray reports")
+    parser.add_argument("--train_csv", required=True, help="Train CSV path")
+    parser.add_argument("--test_csv", default="test_resized.csv", help="Test/val CSV path")
+    parser.add_argument("--train_name", required=True, help="Experiment name for output dir")
+    parser.add_argument("--model_mode", default="default", help="LoRA config mode")
+    parser.add_argument("--output_dir", default="./outputs", help="Root output directory")
+    parser.add_argument("--image_mode", default="frontal_and_lateral", choices=["frontal_and_lateral", "frontal", "lateral"])
+    parser.add_argument("--clahe", action="store_true")
+
+    args = parser.parse_args()
+
+    main(
+        train_name=args.train_name,
+        model_mode=args.model_mode,
+        output_dir_root=args.output_dir,
+        train_csv_path=args.train_csv,
+        test_csv_path=args.test_csv,
+        image_mode=args.image_mode,
+        apply_clahe_fn=args.clahe
+    )
+
