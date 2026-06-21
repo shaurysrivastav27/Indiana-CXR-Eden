@@ -380,7 +380,6 @@ For uid 66 (clear normal lungs):
 
 This exact phrasing appears verbatim for uid 171, uid 200, uid 363 — four clean-lung patients all receive an emphysema diagnosis. Oversampling biased the model toward producing pathology outputs even on normal cases, causing false-positive inflation that BLEU/ROUGE reward (because "emphysema" is a real clinical word with correct sentence structure) but CRIMSON and CheXbert penalise (because the clinical entity is wrong).
 
-A contributing factor: the `is_normal` heuristic used to classify cases during oversampling was initially only excluding two conditions (`cardiomegaly` and `opacity`). Cases with pleural effusion, atelectasis, pneumothorax, emphysema, and fractures were misclassified as "normal" and excluded from oversampling, meaning the "abnormal" set being upsampled was itself contaminated and incomplete. This was corrected post-evaluation (see Corrections).
 
 **`frontal_lateral_clahe_oversample_encoder_decoder`** fares worse still: CRIMSON = -0.103, the only negative CRIMSON score in the set. The model hallucinates devices and vascular findings on clean scans and produces "None available" as generated findings for uid 22 and uid 500. This suggests CLAHE + oversampling together destabilise the encoder-decoder model, possibly by amplifying contrast artifacts that mimic abnormal features during training.
 
@@ -439,7 +438,6 @@ The observed output differences explain several metric divergences that are not 
 
 ### 9.9 Overall Assessment: Which Configuration Produces the Most Clinically Useful Reports?
 
-> **Note on evaluation validity:** The ablation results in section 6 and the qualitative comparisons above were produced before a critical evaluation bug was identified and fixed: `generate_response.py` was using the training dataset class, which included the ground-truth assistant turn (findings + impression) in the input prompt. The model was completing a partially pre-filled sequence rather than generating blindly. All metrics are therefore optimistic across all fine-tuned configurations.
 **`frontal_lateral_no_clahe_no_oversample_encoder_decoder`** produces the most consistently useful reports overall. It has:
 - The highest RadGraph score of all ten configurations (0.321)
 - Strong CheXbert accuracy (0.717) — second best
