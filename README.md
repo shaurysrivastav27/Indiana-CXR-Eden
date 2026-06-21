@@ -181,8 +181,8 @@ A core objective was selecting a model lightweight enough to train on free-tier 
 During initial baseline training, the model exhibited severe **Prior Collapse** (Mode Collapse). Because the raw dataset was >80% "Normal/No Finding", the Causal Language Modeling loss incentivized the model to simply predict "normal study" to safely minimize cross-entropy. Hence the metrics for No-finding and cases which had more prevelance were giving good metrics, specifically Pleural effusion (in settings where laterals were present). 
 
 - **Why simple text oversampling fails:** In standard NLP, text paraphrasing is used to combat imbalance. In the medical domain, paraphrasing is dangerous because radiologists rely on a highly specific, standardized lexicon. Furthermore, simply duplicating minority rows causes the Vision Encoder to memorize the exact pixel arrangement of a specific patient's scan rather than learning the generalized disease. Although few reports have mention of prior studies and mention details like XXXX. Some sort of cleaning is required for this kind of problems using LLMs.
-- **Smart Oversampling + Image Augmentation:** We implemented dynamic oversampling based on the rarest bucket in a given row, duplicating minority classes up to a target threshold. We paired this with **on-the-fly Image Augmentation** (subtle rotations, crops, and contrast shifts). When the model saw the same "Atelectasis" report 15 times, the Vision Encoder saw 15 uniquely augmented representations, forcing true pathological invariance.
-- **CLAHE Enhancement:** X-rays are notoriously low-contrast. We introduced Contrast Limited Adaptive Histogram Equalization (CLAHE) preprocessing. CLAHE locally enhances contrast, making ribs, bone lesions, and faint interstitial opacities highly visible for the vision encoder.
+- **Smart Oversampling + Image Augmentation:** I implemented dynamic oversampling based on the rarest bucket in a given row, duplicating minority classes up to a target threshold. I paired this with **on-the-fly Image Augmentation** (subtle rotations, crops, and contrast shifts). When the model saw the same "Atelectasis" report 15 times, the Vision Encoder saw 15 uniquely augmented representations, forcing true pathological invariance.
+- **CLAHE Enhancement:** X-rays are notoriously low-contrast. I introduced Contrast Limited Adaptive Histogram Equalization (CLAHE) preprocessing. CLAHE locally enhances contrast, making ribs, bone lesions, and faint interstitial opacities highly visible for the vision encoder.
 
 ## 5. Architectural Evolution: Encoder + Decoder Fine-Tuning
 
@@ -192,7 +192,7 @@ By expanding my LoRA targets to `all-linear` layers, I explicitly unfroze the pr
 
 ## 6. Clinical Evaluation & Ablation Results
 
-Evaluating medical text using standard NLP metrics (like BLEU or ROUGE) is fundamentally flawed, as they rely on exact n-gram matching and fail to capture clinical equivalence. Instead, we prioritized:
+Evaluating medical text using standard NLP metrics (like BLEU or ROUGE) is fundamentally flawed, as they rely on exact n-gram matching and fail to capture clinical equivalence. Instead, I prioritized:
 
 1. **CRIMSON Score:** A state-of-the-art metric from the Rajpurkar Lab designed specifically to evaluate factual accuracy and clinical reasoning in radiology, severely penalizing hallucinated conditions or missed critical findings.
 2. **RadGraph F1:** A strict, graph-based metric that extracts anatomical entities and checks for exact relational matches.
