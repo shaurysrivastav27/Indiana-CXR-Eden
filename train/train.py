@@ -11,6 +11,7 @@ from utils import (
 )
 from peft import get_peft_model
 import argparse
+import argparse
 
 
 def main(
@@ -37,6 +38,7 @@ def main(
     print("Loading Training Dataset...")
     train_dataset = XRayReportDataset(
         csv_file=train_csv_path, image_mode=image_mode, apply_clahe_fn=apply_clahe_fn
+        csv_file=train_csv_path, image_mode=image_mode, apply_clahe_fn=apply_clahe_fn
     )
 
     print("Loading Testing/Validation Dataset...")
@@ -56,9 +58,9 @@ def main(
     # ==========================================
     training_args = TrainingArguments(
         output_dir=output_dir,
-        per_device_train_batch_size=2,
+        per_device_train_batch_size=4,
         per_device_eval_batch_size=1,
-        gradient_accumulation_steps=2,
+        gradient_accumulation_steps=1,
         optim="adamw_torch_fused",
         learning_rate=2e-4,
         fp16=False,
@@ -67,7 +69,9 @@ def main(
         num_train_epochs=3,
         eval_strategy="steps",
         eval_steps=50,
+        eval_steps=50,
         save_strategy="steps",
+        save_steps=50,
         save_steps=50,
         logging_steps=10,
         lr_scheduler_type="cosine",
