@@ -11,6 +11,7 @@ from utils import (
     load_model_with_lora,
     XRayReportEvalDataset,
 )
+import argparse
 
 
 def parse_images(message):
@@ -23,19 +24,22 @@ def parse_images(message):
 
 
 def generate_reports(
-    LORA_ADAPTER_PATH,
+    LORA_ADAPTER_PATH=None,
     TEST_CSV="test_resized.csv",
     OUTPUT_CSV="evaluation_results.csv",
     MAX_NEW_TOKENS=1024,
     IMAGE_MODE="frontal_and_lateral",
     BATCH_SIZE=8,
+    apply_clahe_fn=False,
 ):
 
     # ==========================================
     # 4. Prepare Dataset
     # ==========================================
     print(f"Loading test dataset: {TEST_CSV}")
-    df = XRayReportEvalDataset(csv_file=TEST_CSV, image_mode=IMAGE_MODE)
+    df = XRayReportEvalDataset(
+        csv_file=TEST_CSV, image_mode=IMAGE_MODE, apply_clahe_fn=apply_clahe_fn
+    )
 
     generated_reports = []
 
@@ -79,8 +83,6 @@ def generate_reports(
                 **inputs,
                 max_new_tokens=MAX_NEW_TOKENS,
                 do_sample=False,
-                temperature=0.0,
-                top_p=0.95,
                 repetition_penalty=1.1,
             )
 
@@ -122,3 +124,49 @@ def generate_reports(
 
     df.to_csv(OUTPUT_CSV, index=False)
     print(f"\nFinished! Results saved to {OUTPUT_CSV}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Train Qwen-VL with LoRA for X-Ray reports"
+    )
+    parser.add_argument("--lora_path", default=None, help="Train CSV path")
+    parser.add_argument(
+        "--test_csv", default="test_resized.csv", help="Test/val CSV path"
+    )
+    parser.add_argument(
+        "--output_csv",
+        default="test_output_resized.csv",
+        help="Test/val output CSV path",
+    )
+    parser.add_argument(
+        "--max_new_tokens",
+        default=1024,
+    )
+    parser.add_argument(
+        "--image_mode",
+        default="frontal_and_lateral",
+        choices=["frontal_and_lateral", "frontal", "lateral"],
+    )
+    parser.add_argument("--batch_size", default=8, type=int)
+    parser.add_argument("--apply_clahe_fn", action="store_true")
+    parser.add_argument(
+        "--tensor_parallel_size",
+        default=1,
+        type=int,
+        help="VLLM tensor parallel size (number of GPUs)",
+    )
+
+    args = parser.parse_args()
+
+    os.environ["VLLM_TENSOR_PARALLEL_SIZE"] = str(args.tensor_parallel_size)
+
+    generate_reports(
+        LORA_ADAPTER_PATH=args.lora_path,
+        TEST_CSV=args.test_csv,
+        OUTPUT_CSV=args.output_csv,
+        MAX_NEW_TOKENS=int(args.max_new_tokens),
+        IMAGE_MODE=args.image_mode,
+        BATCH_SIZE=args.batch_size,
+        apply_clahe_fn=args.apply_clahe_fn,
+    )

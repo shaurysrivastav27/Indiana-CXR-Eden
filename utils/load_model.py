@@ -37,6 +37,8 @@ def load_base_model(BASE_MODEL_ID="Qwen/Qwen3-VL-2B-Instruct", train=False):
 def load_model_with_lora(LORA_ADAPTER_PATH):
     base_model, processor = load_base_model()
     print(f"Loading LoRA weights from: {LORA_ADAPTER_PATH}...")
+    if LORA_ADAPTER_PATH is None:
+        return base_model, processor
     model = PeftModel.from_pretrained(base_model, LORA_ADAPTER_PATH)
     model = model.merge_and_unload()
     model.eval()

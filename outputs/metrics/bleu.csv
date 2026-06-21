@@ -1,0 +1,11 @@
+,0
+results_frontal_lateral_clahe_oversample_encoder_decoder.csv,9.31
+results_frontal_lateral_no_clahe_no_oversample_encoder_decoder.csv,10.52
+results_frontal_no_clahe_no_oversample_encoder_decoder.csv,9.58
+results_frontal_lateral_no_clahe_oversample_encoder_decoder.csv,13.7
+results_frontal_no_clahe_no_oversample_encoder.csv,9.41
+results_frontal_lateral_clahe_no_oversample_encoder.csv,10.58
+results_frontal_clahe_no_oversample_encoder.csv,9.83
+results_frontal_lateral_no_clahe_no_oversample_encoder.csv,9.61
+results_baseline_frontal.csv,0.8
+results_baseline_frontal_lateral.csv,0.84

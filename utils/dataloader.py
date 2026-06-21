@@ -119,11 +119,9 @@ class XRayReportDataset(Dataset):
                     content_list.append({"type": "image", "image": clahe_front_img})
                 if self.augment:
                     front_img = self.augment(front_img)
-                
-                
+
                 images.append(front_img)
                 content_list.append({"type": "image", "image": front_img})
-
 
             except Exception as e:
                 print(f"Error loading frontal image {row['Frontal']}: {e}")
@@ -206,8 +204,6 @@ class XRayReportEvalDataset(Dataset):
                 images.append(front_img)
                 content_list.append({"type": "image", "image": front_img})
 
-                
-
             except Exception as e:
                 print(f"Error loading frontal image {row['Frontal']}: {e}")
 
@@ -228,11 +224,10 @@ class XRayReportEvalDataset(Dataset):
         content_list.append({"type": "text", "text": prompt_text})
 
         # 4. Construct the Qwen-VL Chat Message Format
-        messages = [
-            {"role": "user", "content": content_list}
-        ]
+        messages = [{"role": "user", "content": content_list}]
 
         return {"messages": messages, "images": images}
+
 
 class QwenVLLMDataCollator:
     def __init__(self, processor):
@@ -242,29 +237,16 @@ class QwenVLLMDataCollator:
         texts = []
         image_inputs = []
 
-        # To mask the prompt, we need the raw prompt text lengths
-        prompt_texts = []
-
         for feature in features:
             messages = feature["messages"]
             images = feature["images"]
 
-            # Format the full sequence (User + Assistant)
             full_text = self.processor.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=False
             )
             texts.append(full_text)
-
-            # Format the prompt only (User only) to calculate masking boundary
-            prompt_only = self.processor.apply_chat_template(
-                [messages[0]], tokenize=False, add_generation_prompt=True
-            )
-            prompt_texts.append(prompt_only)
-
-            # Qwen processor expects a flat list of all images in the batch
             image_inputs.extend(images)
 
-        # Process the full sequences (Inputs + Targets)
         batch = self.processor(
             text=texts,
             images=image_inputs if len(image_inputs) > 0 else None,
@@ -274,24 +256,31 @@ class QwenVLLMDataCollator:
 
         labels = batch["input_ids"].clone()
 
-        # Masking out the user prompt and padding tokens
+        # Find the assistant response start token to mask everything before it
+        # Qwen3 uses <|im_start|>assistant\n pattern
+        assistant_token_id = self.processor.tokenizer.convert_tokens_to_ids(
+            "<|im_start|>"
+        )
+
         for i in range(len(labels)):
-            # 1. Find where real (non-padding) tokens start in the full sequence.
-            #    With left-padding, padding tokens sit at the front, so the first
-            #    position where attention_mask == 1 is where the prompt begins.
-            real_start = (batch["attention_mask"][i] == 1).nonzero(as_tuple=True)[0][0].item()
+            input_ids = batch["input_ids"][i]
 
-            # 2. Get the unpadded prompt length by tokenizing the prompt alone,
-            #    without any batch padding, so we get the true token count.
-            prompt_encoding = self.processor.tokenizer(
-                prompt_texts[i], return_tensors="pt", padding=False
-            )
-            prompt_len = prompt_encoding["input_ids"].shape[1]
+            # Find the LAST <|im_start|> which starts the assistant turn
+            im_start_positions = (input_ids == assistant_token_id).nonzero(
+                as_tuple=True
+            )[0]
 
-            # 3. Mask exactly the prompt tokens in the full sequence.
-            labels[i, real_start : real_start + prompt_len] = -100
+            if len(im_start_positions) >= 2:
+                # Second <|im_start|> is the assistant turn (first is user turn)
+                assistant_start = im_start_positions[-1].item()
+                # Mask everything before assistant response
+                labels[i, :assistant_start] = -100
+            else:
+                # Fallback: mask nothing (shouldn't happen)
+                print("No im_start found masking nothing!")
+                pass
 
-            # 4. Mask padding tokens.
+            # Mask padding
             pad_mask = batch["attention_mask"][i] == 0
             labels[i, pad_mask] = -100
 

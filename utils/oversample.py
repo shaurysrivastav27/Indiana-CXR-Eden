@@ -1,5 +1,4 @@
 import pandas as pd
-import ast
 
 
 def balance_dataset(abnormal_X=3, reduce_normal=False):
@@ -14,8 +13,23 @@ def balance_dataset(abnormal_X=3, reduce_normal=False):
     # Adjust the string matching below based on exactly how your 'buckets' column is formatted
     def is_normal(bucket_val):
         val = str(bucket_val).lower()
-        # If the only thing in the bucket is normal/no finding
-        return "normal" in val and "cardiomegaly" not in val and "opacity" not in val
+        # A row is normal only if it contains "normal" or "no_finding"
+        # and contains no other abnormal label.
+        # We check this by ensuring no known abnormal bucket keyword is present.
+        abnormal_keywords = [
+            "cardiomegaly", "cardiovascular",
+            "opacity", "infection", "consolidation",
+            "pleural", "pneumothorax",
+            "copd", "emphysema", "hyperinflation",
+            "atelectasis", "volume_loss",
+            "nodule", "mass", "fibrosis", "granuloma",
+            "bones", "spine", "fracture",
+            "devices", "surgical",
+            "diaphragm", "mediastinum",
+        ]
+        has_normal = "normal" in val or "no_finding" in val
+        has_abnormal = any(kw in val for kw in abnormal_keywords)
+        return has_normal and not has_abnormal
 
     df["is_normal"] = df["buckets"].apply(is_normal)
 

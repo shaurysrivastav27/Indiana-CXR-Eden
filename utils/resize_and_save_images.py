@@ -7,7 +7,7 @@ from tqdm import tqdm
 # ==========================================
 # Configuration
 # ==========================================
-OUTPUT_IMG_DIR = "resized_images"  # Folder where new images will be saved
+OUTPUT_IMG_DIR = "CH/resized"  # Folder where new images will be saved
 TARGET_SIZE = (768, 768)  # The maximum width/height
 
 # Create output directory if it doesn't exist
@@ -59,13 +59,13 @@ def main(INPUT_CSV="test.csv", OUTPUT_CSV="test_resized.csv"):
         for idx, row in df.iterrows():
             # Queue Frontal Image
             if pd.notna(row["Frontal"]):
-                save_name = row["Frontal"].split("/")[-1]
+                save_name = "frontal_" + row["Frontal"].split("/")[-1]
                 future = executor.submit(process_image, row["Frontal"], save_name)
                 tasks.append((future, idx, "Frontal"))
 
             # Queue Lateral Image
             if pd.notna(row["Lateral"]):
-                save_name = row["Lateral"].split("/")[-1]
+                save_name = "lateral_" + row["Lateral"].split("/")[-1]
                 future = executor.submit(process_image, row["Lateral"], save_name)
                 tasks.append((future, idx, "Lateral"))
 
@@ -87,3 +87,16 @@ def main(INPUT_CSV="test.csv", OUTPUT_CSV="test_resized.csv"):
     df.to_csv(OUTPUT_CSV, index=False)
     print(f"\nDone! Resized images saved to: {OUTPUT_IMG_DIR}/")
     print(f"Updated CSV saved to: {OUTPUT_CSV}")
+
+
+if __name__ == "__main__":
+    # main("CH/test.csv",
+    #     OUTPUT_CSV="CH/test_resized.csv")
+
+    # main("CH/train_v2.csv",
+    #     OUTPUT_CSV="CH/train_resized.csv")
+
+    main(
+        "CH/train.csv",
+        OUTPUT_CSV="CH/train_resized_v0.csv",
+    )
